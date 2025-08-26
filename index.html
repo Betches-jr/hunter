@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: radial-gradient(circle at 30% 10%, #1b1b2b, #0f0f17 60%);
+      --accent: #7ee787;
+      --accent-2: #7ab7ff;
+      --text: #e6e6f0;
+      --muted: #a8a8c0;
+      --rare: gold;
+    }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, sans-serif;
+      overflow: hidden;
+    }
+    .hud {
+      position: absolute; inset: 0 0 auto 0; height: 64px; display: flex; align-items: center; gap: 16px; padding: 0 16px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0));
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      z-index: 10;
+    }
+    .hud h1 { font-size: 16px; font-weight: 600; margin: 0; }
+    .stage { position: absolute; inset: 64px 0 0 0; perspective: 900px; }
+    .disc {
+      position: absolute; top: -340px; width: 260px; height: 260px; border-radius: 50%; cursor: pointer;
+      background: conic-gradient(from 0deg, #fff 0 10%, #dcdcdc 10% 35%, #f5f5f5 35% 60%, #dcdcdc 60% 85%, #fff 85% 100%);
+      box-shadow: 0 30px 60px rgba(0,0,0,0.45), inset 0 8px 24px rgba(0,0,0,0.25);
+      animation: dropIn 1.4s cubic-bezier(.2,.8,.2,1) forwards;
+    }
+    .disc.floating { animation: float 3.2s ease-in-out infinite; }
+    .disc .label { position: absolute; inset: 10px; border-radius: 50%; overflow: hidden; }
+    .disc .label img { width: 100%; height: 100%; object-fit: cover; }
+    .disc::after { content: ""; position: absolute; width: 26px; height: 26px; background: radial-gradient(circle, #aaa, #444); border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%,-50%); }
+    .owner-tag { position: absolute; top: -34px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.45); padding: 4px 8px; border-radius: 12px; font-size: 12px; }
+    .tracks { display: block; font-size: 11px; color: var(--muted); }
+    .unclickable { opacity: 0.4; cursor: not-allowed; }
+    .rare { box-shadow: 0 0 20px var(--rare), 0 0 40px var(--rare); }
+    @keyframes dropIn {
+      0% { transform: translateY(-480px) rotateX(-25deg); opacity: 0; }
+      100% { transform: translateY(36vh) rotateX(0deg); opacity: 1; }
+    }
+    @keyframes float {
+      0% { transform: translateY(36vh); }
+      50% { transform: translateY(34vh); }
+      100% { transform: translateY(36vh); }
+    }
+    .player-wrap { position: absolute; inset: auto 0 0 0; height: 40%; display: grid; place-items: end center; }
+    .player { width: min(900px, 88vw); height: 240px; border-radius: 20px; padding: 18px; background: #0a0d11; border: 1px solid rgba(255,255,255,0.08); transform: translateY(120%); transition: transform .7s; }
+    .player.visible { transform: translateY(0%); }
+    .slot { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); width: 300px; height: 16px; border-radius: 8px; background: #333; }
+    .player-card {
+      background: #222;
+      border-radius: 15px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+      padding: 20px;
+      width: 350px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 20;
+    }
+    .fancy-player {
+      background: linear-gradient(135deg, rgba(40,40,80,0.85) 60%, rgba(80,80,160,0.7));
+      border-radius: 20px;
+      box-shadow: 0 8px 32px 0 rgba(0,0,0,0.45), 0 0 32px 4px gold;
+      padding: 28px 24px 20px 24px;
+      width: 370px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      border: 1.5px solid rgba(255,255,255,0.12);
+      backdrop-filter: blur(8px);
+      animation: fadeInPlayer 0.8s cubic-bezier(.2,.8,.2,1);
+    }
+    @keyframes fadeInPlayer {
+      from { opacity: 0; transform: scale(0.95) translateY(40px);}
+      to { opacity: 1; transform: scale(1) translateY(0);}
+    }
+    @keyframes glow {
+      from { box-shadow: 0 0 8px 2px gold, 0 0 0px 0px #fff; }
+      to { box-shadow: 0 0 24px 8px gold, 0 0 8px 2px #fff; }
+    }
+    .player-header {
+      display: flex;
+      align-items: center;
+      font-weight: bold;
+      font-size: 17px;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    #closePlayer {
+      background: linear-gradient(135deg,#333,#555);
+      border: none;
+      color: white;
+      font-size: 24px;
+      cursor: pointer;
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s, box-shadow 0.2s;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    #closePlayer:hover {
+      background: linear-gradient(135deg,#555,#888);
+      box-shadow: 0 0 12px gold;
+      color: gold;
+    }
+    .playlist {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 180px;
+      overflow-y: auto;
+      margin-bottom: 8px;
+    }
+    .playlist button {
+      background: linear-gradient(90deg,#222,#444 80%);
+      border: none;
+      padding: 12px 16px;
+      border-radius: 12px;
+      cursor: pointer;
+      text-align: left;
+      font-size: 15px;
+      color: #ffe;
+      font-weight: 500;
+      transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    }
+    .playlist button:hover, .playlist button.active {
+      background: linear-gradient(90deg,#444,#7ee787 80%);
+      color: #222;
+      box-shadow: 0 0 12px #7ee787;
+    }
+    /* Fancy playlist control buttons */
+    .playlist-controls button {
+      background: linear-gradient(90deg, var(--accent-2) 0%, var(--accent) 100%);
+      color: #222;
+      border: none;
+      border-radius: 16px;
+      padding: 12px 28px;
+      font-size: 17px;
+      font-weight: bold;
+      margin: 0 4px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.18), 0 0 8px var(--accent-2);
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s, box-shadow 0.2s, transform 0.1s;
+      outline: none;
+    }
+    .playlist-controls button:hover {
+      background: linear-gradient(90deg, var(--accent) 0%, var(--accent-2) 100%);
+      color: #fff;
+      box-shadow: 0 0 24px var(--accent), 0 2px 12px rgba(0,0,0,0.22);
+      transform: scale(1.07);
+    }
+    .playlist-controls button:active {
+      background: linear-gradient(90deg, #222 0%, var(--accent) 100%);
+      color: var(--accent-2);
+      box-shadow: 0 0 8px var(--accent-2);
+      transform: scale(0.97);
+    }
+    audio {
+      width: 100%;
+      border-radius: 10px;
+      background: rgba(0,0,0,0.15);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    }
+    /* Remove rotating-disc styles */
+    @keyframes rotateDisc {
+      0% { transform: translateX(-50%) rotate(0deg);}
+      100% { transform: translateX(-50%) rotate(360deg);}
+    }
+    @keyframes ejectDiscAnim {
+      0% { opacity: 1; transform: translateY(0) scale(1) rotate(0deg);}
+      60% { opacity: 1; transform: translateY(-80px) scale(1.1) rotate(180deg);}
+      100% { opacity: 0; transform: translateY(-180px) scale(0.7) rotate(360deg);}
+    }
+    .rotating-disc.ejecting {
+      animation: ejectDiscAnim 1s cubic-bezier(.2,.8,.2,1) forwards;
+    }
+    /* Player animation from bottom */
+    .player-card.fancy-player {
+      /* ...existing code... */
+      animation: playerPopUp 0.7s cubic-bezier(.2,.8,.2,1);
+    }
+    @keyframes playerPopUp {
+      0% { opacity: 0; transform: translate(-50%, 80px) scale(0.95);}
+      100% { opacity: 1; transform: translate(-50%, 0) scale(1);}
+    }
+    @media (max-width: 600px) {
+      .hud {
+        height: 48px;
+        padding: 0 8px;
+        font-size: 13px;
+      }
+      .hud h1 { font-size: 13px; }
+      .stage {
+        inset: 48px 0 0 0;
+      }
+      .disc {
+        width: 280px;
+        height: 280px;
+        top: -220px;
+      }
+      .disc .label { inset: 7px; }
+      .disc::after { width: 18px; height: 18px; }
+      .owner-tag { top: -24px; font-size: 10px; padding: 2px 6px; }
+      .tracks { font-size: 9px; }
+      .player-card,
+      .fancy-player {
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        position: fixed;
+        width: 100vw;
+        max-width: 320px;
+        padding: 18px 8vw 18px 8vw;
+        border-radius: 18px;
+        font-size: 16px;
+        gap: 18px;
+        bottom: 50px;
+        box-sizing: border-box;
+        animation: playerPopUp 0.7s cubic-bezier(.2,.8,.2,1);
+        z-index: 10;
+      }
+      .player-header {
+        font-size: 14px;
+        gap: 6px;
+        margin-bottom: 6px;
+      }
+      #player-cover {
+        width: 32px;
+        height: 32px;
+        margin-right: 8px;
+      }
+      #closePlayer {
+        font-size: 18px;
+        width: 28px;
+        height: 28px;
+      }
+      .playlist {
+        gap: 6px;
+        max-height: 120px;
+        margin-bottom: 6px;
+      }
+      .playlist button {
+        font-size: 13px;
+        padding: 8px 10px;
+        border-radius: 8px;
+      }
+      .playlist-controls button {
+        font-size: 13px;
+        padding: 8px 16px;
+        border-radius: 10px;
+        margin: 0 2px;
+      }
+      audio {
+        border-radius: 8px;
+        margin-top: 6px;
+        padding: 2px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Center logo at the top -->
+  <div style="width:140px; margin:24px auto 0 auto; display:flex; justify-content:center;">
+    <img src="logo/logo.png" alt="Calypsia Logo" style="width:200%; display:block;">
+  </div>
+  <div id="disc-info" style="text-align:center; font-size:18px; font-weight:bold; color:gold; margin-top:8px;"></div>
+  <!-- Center disc and player below logo -->
+  <div style="display:flex; flex-direction:column; align-items:center; justify-content:flex-start; width:100vw; min-height:calc(100vh - 64px); margin-top:64px;">
+    <div class="stage" id="stage" style="position:relative; display:flex; justify-content:center; align-items:center; min-height:320px; width:100vw;"></div>
+    <div class="player-wrap" style="width:100%; display:flex; justify-content:center; align-items:flex-start; position:relative;">
+      <!-- ...existing code... -->
+      <div id="dvdPlayer" class="player-card fancy-player"
+        style="display:none;">
+        <div class="player-header">
+          <img id="player-cover" src="" alt="Disc Cover" style="width:48px;height:48px;border-radius:50%;box-shadow:0 0 16px gold;animation:glow 2s infinite alternate;margin-right:12px;">
+          <span id="player-title" style="flex:1;">Playing: </span>
+          <button id="closePlayer" onclick="ejectDisc()">×</button>
+        </div>
+        <div id="playlist" class="playlist"></div>
+        <div class="playlist-controls" style="margin-top:16px; display:flex; gap:12px; justify-content:center;">
+          <button id="playlistPlay">Play</button>
+          <button id="playlistPause">Pause</button>
+          <button id="playlistEject">Eject</button>
+        </div>
+        <audio id="audioPlayer" controls style="width:100%;margin-top:10px;border-radius:10px;backdrop-filter:blur(2px);"></audio>
+      </div>
+    </div>
+  </div>
+  <script>
+    let currentDisc = null;
+    const stage = document.getElementById('stage');
+    const player = document.getElementById('player');
+    const slot = document.getElementById('slot');
+    const meta = document.getElementById('meta');
+    const discInfo = document.getElementById('disc-info');
+
+    async function insertDisc(d, disc) {
+      if (currentDisc) return;
+      currentDisc = disc;
+      if (player) player.classList.add('visible');
+      const rect = disc.getBoundingClientRect();
+      const slotRect = slot ? slot.getBoundingClientRect() : {left:window.innerWidth/2,top:window.innerHeight-180,width:300,height:16};
+      // Animate disc downwards to slot (center bottom)
+      const dx = slotRect.left + slotRect.width/2 - (rect.left + rect.width/2);
+      const dy = slotRect.top + slotRect.height/2 - (rect.top + rect.height/2);
+      disc.animate([
+        { transform: 'translate(0,0) rotateX(0)', opacity: 1 },
+        { transform: `translate(${dx}px, ${Math.abs(dy)}px) rotateX(80deg)`, opacity: 0 }
+      ], {duration:1000, fill:'forwards'}).onfinish = async ()=>{
+        disc.style.visibility = 'hidden';
+        if (meta) meta.textContent = `${disc.dataset.title} by ${disc.dataset.owner} • ${disc.dataset.tracks} tracks`;
+        history.pushState(null, "", "?disc=" + d.link);
+        if (d.playlistFile) {
+          await insertDiscPlaylist(d);
+        }
+      }
+    }
+
+    async function insertDiscPlaylist(disc) {
+      const dvdPlayer = document.getElementById("dvdPlayer");
+      const playlistContainer = document.getElementById("playlist");
+      const audio = document.getElementById("audioPlayer");
+      const playerTitle = document.getElementById("player-title");
+      const playerCover = document.getElementById("player-cover");
+
+      dvdPlayer.style.display = "block";
+      playlistContainer.innerHTML = "";
+      playerTitle.textContent = `Playing: ${disc.title}`;
+      playerCover.src = disc.image;
+
+      try {
+        const response = await fetch(disc.playlistFile);
+        const playlist = await response.json();
+        let currentIndex = 0;
+
+        function playSong(index) {
+          currentIndex = index;
+          audio.src = playlist[index].url;
+          audio.play();
+          playerTitle.textContent = `Playing: ${playlist[index].title}`;
+          Array.from(playlistContainer.children).forEach((btn, i) => {
+            btn.classList.toggle('active', i === index);
+          });
+        }
+
+        playlist.forEach((song, index) => {
+          const btn = document.createElement("button");
+          btn.textContent = `${index + 1}. ${song.title}`;
+          btn.onclick = () => playSong(index);
+          playlistContainer.appendChild(btn);
+        });
+
+        if (playlist.length > 0) {
+          playSong(0);
+        }
+
+        audio.onended = () => {
+          if (currentIndex < playlist.length - 1) {
+            playSong(currentIndex + 1);
+          }
+        };
+
+        // Make Play and Pause buttons work for playlist audio
+        document.getElementById('playlistPlay').onclick = () => {
+          if (audio.src) audio.play();
+        };
+        document.getElementById('playlistPause').onclick = () => {
+          audio.pause();
+        };
+        document.getElementById('playlistEject').onclick = () => {
+          ejectDisc();
+        };
+
+      } catch (err) {
+        console.error("Failed to load playlist:", err);
+      }
+    }
+
+    function ejectDisc() {
+      const dvd = document.getElementById("dvdPlayer");
+      if (dvd) dvd.style.display = "none";
+      const audio = document.getElementById("audioPlayer");
+      if (audio) audio.pause();
+      // removed rotatingDisc logic
+      if (!currentDisc) return;
+      currentDisc.style.visibility = 'visible';
+      currentDisc.classList.add('floating');
+      if (player) player.classList.remove('visible');
+      currentDisc = null;
+      stage.innerHTML = "";
+      discInfo.textContent = "";
+      setTimeout(loadDiscs, 200);
+    }
+
+    async function loadDiscs() {
+      const res = await fetch('discs.json');
+      let discs = await res.json();
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const discLink = urlParams.get('disc');
+
+      if (discLink) {
+        const match = discs.find(d => d.link === discLink);
+        if (match) {
+          discs = [match];
+          discInfo.textContent = `Disc Owner: ${match.title}`;
+        } else {
+          discInfo.textContent = "Disc not found!";
+        }
+      }
+
+      discs.forEach((d, i) => {
+        const disc = document.createElement('div');
+        disc.className = 'disc';
+        if (discLink && d.link === discLink) disc.classList.add('rare');
+        disc.innerHTML = `
+          <div class="owner-tag">${d.owner} <span class="tracks">${d.tracks} tracks</span></div>
+          <div class="label"><img src="${d.image}" alt="${d.title}" /></div>
+        `;
+        stage.appendChild(disc);
+
+        disc.dataset.title = d.title;
+        disc.dataset.owner = d.owner;
+        disc.dataset.tracks = d.tracks;
+        disc.dataset.image = d.image;
+
+        if (d.clickable === false) {
+          disc.classList.add('unclickable');
+        } else {
+          disc.addEventListener('animationend', () => disc.classList.add('floating'), {once:true});
+          disc.addEventListener('click', () => insertDisc(d, disc));
+        }
+      });
+    }
+
+    loadDiscs();
+  </script>
+</body>
+</html>

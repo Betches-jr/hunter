@@ -1,0 +1,53 @@
+[
+  {
+    "owner": "EMA",
+    "title": "EMA",
+    "image": "dimage/8.jpg",
+    "link": "ema",
+    "clickable": true,
+    "playlistFile": "playlists/demon-junter.json"
+  },
+  {
+    "owner": "MAIA",
+    "title": "MAIA",
+    "image": "dimage/14.jpg",
+    "link": "maia",
+    "clickable": true,
+    "playlistFile": "playlists/demon-junter.json"
+  },
+  {
+    "owner": "IKER TADEO",
+    "title": "IKER TADEO",
+    "image": "dimage/26.jpg",
+    "link": "iker",
+    "clickable": true,
+    "playlistFile": "playlists/demon-junter.json"
+  },
+  {
+    "owner": "LEILANIE",
+    "title": "LEILANIE",
+    "image": "dimage/9.jpg",
+    "link": "leila",
+    "clickable": true,
+    "playlistFile": "playlists/demon-junter.json"
+  },
+  {
+    "owner": "GERALDINE",
+    "title": "GERALDINE",
+    "image": "dimage/10.jpg",
+    "link": "gerald",
+    "clickable": true,
+    "playlistFile": "playlists/demon-junter.json"
+  },
+  {
+    "owner": "JOSHUA",
+    "title": "JOSHUA",
+    "image": "dimage/1.png",
+    "link": "memo",
+    "clickable": true,
+    "playlistFile": "playlists/beche.json"
+  }
+]
+
+
+
