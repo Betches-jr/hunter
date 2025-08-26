@@ -1,9 +1,9 @@
 [
   {
-    "owner": "EMA",
-    "title": "EMA",
+    "owner": "EMMA",
+    "title": "EMMA",
     "image": "dimage/8.jpg",
-    "link": "ema",
+    "link": "emma",
     "clickable": true,
     "playlistFile": "playlists/demon-junter.json"
   },
@@ -48,6 +48,7 @@
     "playlistFile": "playlists/beche.json"
   }
 ]
+
 
 
 
